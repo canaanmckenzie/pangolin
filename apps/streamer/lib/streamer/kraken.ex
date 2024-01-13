@@ -1,30 +1,29 @@
 defmodule Streamer.Kraken do
   use WebSockex
+  require Logger
 
   # wss://ws-auth.kraken.com/ - needs an auth token
+  @url "wss://ws.kraken.com/"
 
-  @stream_endpoint "wss://ws.kraken.com/"
-
-  def start_link(symbol) do
-    symbol = String.downcase(symbol)
-
-    WebSockex.start_link(
-      "#{@stream_endpoint}#{symbol}@trade",
-      __MODULE__,
-      nil
-    )
+  def start_link(product_ids \\ []) do
+    WebSockex.start_link(@url, __MODULE__, :no_state)
   end
 
   def handle_frame({type, msg}, state) do
-    IO.puts "Received Message - Type: #{inspect type} -- Message: #{inspect msg}"
-    
+    IO.puts "Connected!"
+    {:ok, state}
   end
 
-  @doc """
-  for sending messages back to binance (using the binance REST API instead to place orders
-  """
-  def handle_cast({:send, {type, msg} = frame}, state) do
-    IO.puts "Sending #{type} frame with payload: #{msg}"
-    {:reply, frame, state}
+
+  def subscription_frame(products) do
+    subscription_msg = %{
+      event: "subscribe",
+      pair: products,
+      subscription: %{
+        name: "ticker"
+      }
+    } |> Jason.encode!()
+
+    {subscription_msg, :binary}
   end
 end
